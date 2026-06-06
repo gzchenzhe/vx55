@@ -352,7 +352,7 @@
                width/height 控制箭头大小；margin-left 控制左右位置；
                transform: translateY(...) 控制箭头上下位置，正数向下，负数向上。 */
             width: 10px;
-            height: 21px;
+            height: 15px;
             margin-left: 0;
             object-fit: contain;
             transform: translateY(1px);
@@ -380,7 +380,7 @@
 
         .wechat-back-area .wechat-unread-badge {
             /* 手动调整参数 2：未读气泡和返回箭头之间的距离，数值越大气泡越靠右。 */
-            margin-left: 6px;
+            margin-left: 7px;
         }
 
         .wechat-nav-title {
@@ -390,6 +390,8 @@
             font-size: 16px;
             line-height: 44px;
             font-weight: 500;
+            -webkit-text-stroke: 0.18px currentColor;
+            text-shadow: 0 0 0 currentColor;
             text-align: center;
             letter-spacing: 2px;
         }
