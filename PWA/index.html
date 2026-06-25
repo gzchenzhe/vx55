@@ -131,6 +131,35 @@
             box-shadow: 0 0 0 3px rgba(7, 193, 96, 0.14);
         }
 
+        .pwa-select-wrap {
+            position: relative;
+        }
+
+        select.pwa-native-select {
+            -webkit-appearance: none !important;
+            appearance: none !important;
+            height: 42px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            background-color: #ffffff !important;
+            background-image: none !important;
+            color: #111111;
+            font-size: 16px;
+            line-height: 24px;
+            padding-right: 40px;
+        }
+
+        .pwa-select-chevron {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            width: 16px;
+            height: 16px;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: #111111;
+        }
+
         #edit-panel-scroll .bg-gray-50 {
             background-color: #f7f7f8 !important;
             border-color: #e5e5ea !important;
@@ -477,12 +506,15 @@
         .bubble-right-light::before { right: -5px; background-color: var(--wechat-green); clip-path: polygon(0 0, 100% 50%, 0 100%); }
         
         /* 转账尾巴映射 */
-        .bubble-left-orange-pending-light::before, .bubble-left-orange-pending-dark::before { left: -5px; background-color: #f29c38; clip-path: polygon(100% 0, 0 50%, 100% 100%); }
-        .bubble-right-orange-pending-light::before, .bubble-right-orange-pending-dark::before  { right: -5px; background-color: #f29c38; clip-path: polygon(0 0, 100% 50%, 0 100%); }
-        .bubble-left-orange-accepted-dark::before { left: -5px; background-color: #b37327; clip-path: polygon(100% 0, 0 50%, 100% 100%); }
-        .bubble-right-orange-accepted-dark::before { right: -5px; background-color: #b37327; clip-path: polygon(0 0, 100% 50%, 0 100%); }
-        .bubble-left-orange-accepted-light::before { left: -5px; background-color: #f9d1a1; clip-path: polygon(100% 0, 0 50%, 100% 100%); }
-        .bubble-right-orange-accepted-light::before { right: -5px; background-color: #f9d1a1; clip-path: polygon(0 0, 100% 50%, 0 100%); }
+        .bubble-left-orange-pending-light::before, .bubble-left-orange-pending-dark::before { left: -5px; background-color: #f99d3b; clip-path: polygon(100% 0, 0 50%, 100% 100%); }
+        .bubble-right-orange-pending-light::before, .bubble-right-orange-pending-dark::before  { right: -5px; background-color: #f99d3b; clip-path: polygon(0 0, 100% 50%, 0 100%); }
+        .bubble-left-orange-accepted-dark::before, .bubble-left-orange-accepted-light::before { left: -5px; background-color: #fde1c2; clip-path: polygon(100% 0, 0 50%, 100% 100%); }
+        .bubble-right-orange-accepted-dark::before, .bubble-right-orange-accepted-light::before { right: -5px; background-color: #fde1c2; clip-path: polygon(0 0, 100% 50%, 0 100%); }
+
+        .bubble-left-redpacket-pending-light::before, .bubble-left-redpacket-pending-dark::before { left: -5px; background-color: #fa9e3b; clip-path: polygon(100% 0, 0 50%, 100% 100%); }
+        .bubble-right-redpacket-pending-light::before, .bubble-right-redpacket-pending-dark::before { right: -5px; background-color: #fa9e3b; clip-path: polygon(0 0, 100% 50%, 0 100%); }
+        .bubble-left-redpacket-accepted-light::before, .bubble-left-redpacket-accepted-dark::before { left: -5px; background-color: #fccd9f; clip-path: polygon(100% 0, 0 50%, 100% 100%); }
+        .bubble-right-redpacket-accepted-light::before, .bubble-right-redpacket-accepted-dark::before { right: -5px; background-color: #fccd9f; clip-path: polygon(0 0, 100% 50%, 0 100%); }
 
         /* 文本气泡核心规范（V18 修复字间距与左右内边距） */
         .text-bubble {
@@ -503,7 +535,76 @@
             isolation: isolate;
         }
        
-        .finance-bubble { width: 218px; border-radius: 5px; position: relative; z-index: 10; isolation: isolate; }
+        .finance-bubble { width: 242px; border-radius: 5px; position: relative; z-index: 10; isolation: isolate; }
+        .transfer-main {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-height: 65px;
+            padding: 10px 12px 6px;
+            position: relative;
+            z-index: 10;
+        }
+        .transfer-amount {
+            font-size: 16px;
+            line-height: 20px;
+            font-weight: 400;
+            color: #ffffff;
+            word-break: break-all;
+        }
+        .transfer-title {
+            margin-top: 0;
+            font-size: 15px;
+            line-height: 19px;
+            color: rgba(255, 255, 255, 0.9);
+            word-break: break-all;
+        }
+        .transfer-title.is-accepted {
+            color: rgba(255, 255, 255, 0.75);
+        }
+        .transfer-footer {
+            padding: 0 12px 5px;
+            font-size: 11px;
+            line-height: 14px;
+            color: rgba(255, 255, 255, 0.8);
+            position: relative;
+            z-index: 10;
+        }
+        .transfer-footer.is-accepted {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        .redpacket-bubble { width: 242px; border-radius: 5px; position: relative; z-index: 10; isolation: isolate; }
+        .redpacket-main {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            min-height: 65px;
+            padding: 12px 12px 6px;
+            position: relative;
+            z-index: 10;
+        }
+        .redpacket-title {
+            font-size: 16px;
+            line-height: 20px;
+            font-weight: 400;
+            color: #ffffff;
+            word-break: break-all;
+        }
+        .redpacket-status {
+            margin-top: 1px;
+            font-size: 13px;
+            line-height: 16px;
+            color: rgba(255, 255, 255, 0.8);
+            word-break: break-all;
+        }
+        .redpacket-footer {
+            padding: 0 12px 5px;
+            font-size: 12px;
+            line-height: 16px;
+            color: rgba(255, 255, 255, 0.8);
+            position: relative;
+            z-index: 10;
+        }
         .image-bubble {
             width: 150px;
             height: 150px;
@@ -519,8 +620,8 @@
         .wechat-dark-bg { background-color: var(--wechat-bg-dark); }
         .wechat-dark-left { background-color: var(--wechat-left-dark); color: #f2f2f7; }
         .wechat-dark-right { background-color: var(--wechat-green-dark); color: #000000; }
-        .transfer-pending { background-color: #f29c38; color: #ffffff; }
-        .transfer-accepted { background-color: #b37327; color: rgba(255, 255, 255, 0.65); }
+        .transfer-pending { background-color: #f99d3b; color: #ffffff; }
+        .transfer-accepted { background-color: #fde1c2; color: #ffffff; }
        
         /* 背景与字体颜色基准 */
         .wechat-dark-bg { background-color: var(--wechat-bg-dark); }
@@ -532,9 +633,10 @@
         .wechat-light-right { background-color: var(--wechat-green); color: var(--wechat-text); }
 
         /* 转账气泡颜色规范 */
-        .transfer-pending-light, .transfer-pending-dark { background-color: #f29c38; color: #ffffff; }
-        .transfer-accepted-dark { background-color: #ff8c00; color: #ffffff; }
-        .transfer-accepted-light { background-color: #f9d1a1; color: #ffffff; }
+        .transfer-pending-light, .transfer-pending-dark { background-color: #f99d3b; color: #ffffff; }
+        .transfer-accepted-dark, .transfer-accepted-light { background-color: #fde1c2; color: #ffffff; }
+        .redpacket-pending-light, .redpacket-pending-dark { background-color: #fa9e3b; color: #ffffff; }
+        .redpacket-accepted-light, .redpacket-accepted-dark { background-color: #fccd9f; color: #ffffff; }
 
         /* 浅色模式极度柔和弥散阴影 */
         .wechat-soft-shadow {
@@ -579,9 +681,16 @@
         }
 
         .wechat-transfer-img {
-            width: 34px;
-            height: 34px;
+            width: 42px;
+            height: 42px;
             border-radius: 50%;
+            object-fit: contain;
+            flex: 0 0 auto;
+        }
+
+        .wechat-redpacket-img {
+            width: 40px;
+            height: 47px;
             object-fit: contain;
             flex: 0 0 auto;
         }
@@ -938,12 +1047,17 @@
                     </div>
                     <div class="flex-1">
                         <label class="block text-sm text-gray-600 mb-1">网络标识</label>
-                        <select v-model="networkType" class="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-green-500 outline-none">
-                            <option value="wifi">WiFi</option>
-                            <option value="3G">3G</option>
-                            <option value="4G">4G</option>
-                            <option value="5G">5G</option>
-                        </select>
+                        <div class="pwa-select-wrap">
+                            <select v-model="networkType" class="pwa-native-select w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-green-500 outline-none">
+                                <option value="wifi">WiFi</option>
+                                <option value="3G">3G</option>
+                                <option value="4G">4G</option>
+                                <option value="5G">5G</option>
+                            </select>
+                            <svg class="pwa-select-chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 10l4-4 4 4M16 14l-4 4-4-4" />
+                            </svg>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1094,6 +1208,24 @@
                                 <div class="mt-2"><label class="block text-xs text-gray-500 mb-1">底部小字</label><input v-model="msg.bottomText" type="text" class="w-full px-3 py-1.5 border rounded text-sm outline-none" @mousedown.stop></div>
                             </div>
 
+                            <div v-if="msg.type === 'redPacket'">
+                                <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                    <label class="text-red-600 font-medium">红包</label>
+                                    <label class="flex items-center gap-1 cursor-pointer text-[#27c24c] font-medium" @mousedown.stop><input type="checkbox" v-model="msg.isMe" class="w-[14px] h-[14px]"> 是我发出的</label>
+                                </div>
+                                <div class="mt-2 mb-3">
+                                    <label class="block text-xs text-gray-500 mb-1">状态</label>
+                                    <select v-model="msg.status" class="w-full px-3 py-1.5 border rounded text-sm outline-none focus:ring-2 focus:ring-green-500" @mousedown.stop>
+                                        <option value="pending">未领取</option><option value="accepted">已领取</option>
+                                    </select>
+                                </div>
+                                <div class="flex gap-2">
+                                    <div class="flex-1"><label class="block text-xs text-gray-500 mb-1">祝福语</label><input v-model="msg.title" type="text" class="w-full px-3 py-1.5 border rounded text-sm outline-none" @mousedown.stop></div>
+                                    <div class="flex-1"><label class="block text-xs text-gray-500 mb-1">状态文字</label><input v-model="msg.statusText" type="text" class="w-full px-3 py-1.5 border rounded text-sm outline-none" @mousedown.stop></div>
+                                </div>
+                                <div class="mt-2"><label class="block text-xs text-gray-500 mb-1">底部小字</label><input v-model="msg.bottomText" type="text" class="w-full px-3 py-1.5 border rounded text-sm outline-none" @mousedown.stop></div>
+                            </div>
+
                         </div>
                     </div>
                 </transition-group>
@@ -1108,7 +1240,8 @@
                 <button @click="addMessage('transfer')" class="bg-orange-50 border border-orange-200 hover:bg-orange-100 text-orange-600 text-sm py-2 rounded-md transition shadow-sm">转账</button>
                 <button @click="addMessage('call')" class="bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-600 text-sm py-2 rounded-md transition shadow-sm">通话</button>
                 <button @click="addMessage('nudge')" class="bg-purple-50 border border-purple-200 hover:bg-purple-100 text-purple-600 text-sm py-2 rounded-md transition shadow-sm">拍一拍</button>
-                <button @click="addMessage('time')" class="bg-gray-100 border border-gray-300 hover:bg-gray-200 text-sm py-2 rounded-md transition shadow-sm col-span-3">添加时间戳</button>
+                <button @click="addMessage('time')" class="bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 text-sm py-2 rounded-md transition shadow-sm">时间戳</button>
+                <button @click="addMessage('redPacket')" class="bg-red-50 border border-red-200 hover:bg-red-100 text-red-600 text-sm py-2 rounded-md transition shadow-sm">红包</button>
             </div>
         </div>
     </div>
@@ -1245,22 +1378,41 @@
                                 <div v-if="msg.type === 'transfer'" 
                                      class="finance-bubble bubble-tail transition-colors duration-300" 
                                      :class="getTransferClass(msg)">
-                                    <div class="flex items-center gap-[12px] px-[12px] pt-[10px] pb-[8px] relative z-10">
+                                    <div class="transfer-main">
                                         <img :src="msg.status === 'pending' ? 'pic/wechat-trans-icon1.png' : 'pic/wechat-trans-icon2.png'"
                                              class="wechat-transfer-img"
                                              alt="">
-                                        <div class="flex flex-col justify-center overflow-hidden">
-                                            <div class="text-[16px] font-normal leading-[20px] break-all text-white">
+                                        <div class="flex flex-col justify-center min-w-0 overflow-hidden">
+                                            <div class="transfer-amount">
                                                 {{ msg.amount }}
                                             </div>
-                                            <div class="text-[12px] leading-[16px] mt-[1px] break-all"
-                                                 :class="isDarkMode ? (msg.status === 'pending' ? 'text-white/80' : 'text-white/60') : (msg.status === 'pending' ? 'text-white/90' : 'text-white/80')">
+                                            <div class="transfer-title" :class="{ 'is-accepted': msg.status !== 'pending' }">
                                                 {{ msg.title }}
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="px-[12px] pb-[4px] pt-[3px] text-[11px] relative z-10"
-                                         :class="isDarkMode ? (msg.status === 'pending' ? 'text-white/70 border-t-[0.5px] border-white/20' : 'text-white/50 border-t-[0.5px] border-white/10') : (msg.status === 'pending' ? 'text-white/80' : 'text-white/70')">
+                                    <div class="transfer-footer" :class="{ 'is-accepted': msg.status !== 'pending' }">
+                                        {{ msg.bottomText }}
+                                    </div>
+                                </div>
+
+                                <div v-if="msg.type === 'redPacket'"
+                                     class="redpacket-bubble bubble-tail transition-colors duration-300"
+                                     :class="getRedPacketClass(msg)">
+                                    <div class="redpacket-main">
+                                        <img :src="msg.status === 'pending' ? 'pic/wechat-trans-icon3.png' : 'pic/wechat-trans-icon4.png'"
+                                             class="wechat-redpacket-img"
+                                             alt="">
+                                        <div class="flex flex-col justify-center min-w-0 overflow-hidden">
+                                            <div class="redpacket-title">
+                                                {{ msg.title }}
+                                            </div>
+                                            <div v-if="msg.status !== 'pending'" class="redpacket-status">
+                                                {{ msg.statusText || '已领取' }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="redpacket-footer">
                                         {{ msg.bottomText }}
                                     </div>
                                 </div>
@@ -1441,6 +1593,13 @@
                 const shadow = (!this.isDarkMode) ? 'wechat-soft-shadow' : '';
                 return `transfer-${state}-${theme} bubble-${side}-orange-${state}-${theme} ${shadow}`;
             },
+            getRedPacketClass(msg) {
+                const theme = this.isDarkMode ? 'dark' : 'light';
+                const side = msg.isMe ? 'right' : 'left';
+                const state = msg.status === 'pending' ? 'pending' : 'accepted';
+                const shadow = (!this.isDarkMode) ? 'wechat-soft-shadow' : '';
+                return `redpacket-${state}-${theme} bubble-${side}-redpacket-${state}-${theme} ${shadow}`;
+            },
             getVoiceWidth(sec) {
                 if(!sec || sec < 1) sec = 1;
                 return Math.min(70 + (sec * 4), 220) + 'px';
@@ -1491,7 +1650,8 @@
                 if (type === 'text') baseMsg.content = '输入内容...';
                 else if (type === 'image') { baseMsg.imageUrl = defaultImage; baseMsg.imageWidth = 200; baseMsg.imageHeight = 250; }
                 else if (type === 'voice') { baseMsg.duration = 10; baseMsg.status = 'unread'; baseMsg.convertedText = '转换后的文字...'; }
-                else if (type === 'transfer') { baseMsg.amount = '¥1.00'; baseMsg.title = '你发起了一笔转账'; baseMsg.bottomText = '转账'; baseMsg.status = 'pending'; }
+                else if (type === 'transfer') { baseMsg.amount = '¥1.00'; baseMsg.title = '请收款'; baseMsg.bottomText = '转账'; baseMsg.status = 'pending'; }
+                else if (type === 'redPacket') { baseMsg.title = '恭喜发财，大吉大利'; baseMsg.statusText = '已领取'; baseMsg.bottomText = '红包'; baseMsg.status = 'pending'; }
                 else if (type === 'call') baseMsg.content = '通话时长 12:34';
                 else if (type === 'time') {
                     const now = new Date();

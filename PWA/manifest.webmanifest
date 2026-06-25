@@ -1,6 +1,6 @@
 {
-  "name": "对话生成",
-  "short_name": "对话生成",
+  "name": "微信截图 PWA",
+  "short_name": "截图PWA",
   "description": "微信截图编辑器、聊天内容编辑与预览图分享的三页 PWA 版本。",
   "start_url": "./index.html",
   "scope": "./",
