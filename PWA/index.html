@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#f5f5f7">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -765,6 +765,7 @@
             position: relative;
             min-height: 0;
             overflow: hidden;
+            padding-bottom: 10px;
         }
 
         .pwa-page {
@@ -792,6 +793,14 @@
         .editor-card {
             height: 100% !important;
             max-height: 100%;
+            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06) !important;
+            margin-bottom: 1px;
+        }
+
+        .tool-toggle-btn {
+            min-width: 70px;
+            white-space: nowrap;
+            justify-content: center;
         }
 
         .pwa-topbar {
@@ -1232,11 +1241,23 @@
             </div>
         </div>
 
-        <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 z-20 shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <div class="relative px-6 py-4 border-t border-gray-200 bg-gray-50 z-20 shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            <div class="flex justify-start mb-2">
+                <button @click="toolsExpanded = !toolsExpanded"
+                        class="tool-toggle-btn h-6 px-3 bg-white border border-gray-200 text-gray-600 text-xs rounded-full flex items-center gap-1 shadow-sm"
+                        :aria-expanded="toolsExpanded.toString()">
+                    <span>{{ toolsExpanded ? '收起' : '展开' }}</span>
+                    <svg class="w-3 h-3 transition-transform" :class="{ 'rotate-180': toolsExpanded }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+            </div>
             <div class="grid grid-cols-3 gap-2">
                 <button @click="addMessage('text')" class="bg-white border border-gray-300 hover:bg-gray-100 text-sm py-2 rounded-md transition shadow-sm text-gray-700">文字</button>
                 <button @click="addMessage('image')" class="bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-600 text-sm py-2 rounded-md transition shadow-sm">图片</button>
                 <button @click="addMessage('voice')" class="bg-pink-50 border border-pink-200 hover:bg-pink-100 text-pink-600 text-sm py-2 rounded-md transition shadow-sm">语音</button>
+            </div>
+            <div v-if="toolsExpanded" class="grid grid-cols-3 gap-2 mt-2">
                 <button @click="addMessage('transfer')" class="bg-orange-50 border border-orange-200 hover:bg-orange-100 text-orange-600 text-sm py-2 rounded-md transition shadow-sm">转账</button>
                 <button @click="addMessage('call')" class="bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-600 text-sm py-2 rounded-md transition shadow-sm">通话</button>
                 <button @click="addMessage('nudge')" class="bg-purple-50 border border-purple-200 hover:bg-purple-100 text-purple-600 text-sm py-2 rounded-md transition shadow-sm">拍一拍</button>
@@ -1508,6 +1529,7 @@
                 // 深拷贝一份默认数据作为初始状态
                 ...JSON.parse(JSON.stringify(defaultState)),
                 activePage: 'home',
+                toolsExpanded: false,
                 dragIndex: null,
                 dragOverIndex: null
             }
@@ -1738,6 +1760,121 @@
 
                 this.downloadImage(dataUrl, fileName);
             },
+            async waitForPreviewImages(root) {
+                const images = Array.from(root.querySelectorAll('img'));
+                await Promise.all(images.map(img => {
+                    return new Promise(resolve => {
+                        const timeout = window.setTimeout(resolve, 1800);
+                        const done = () => {
+                            window.clearTimeout(timeout);
+                            resolve();
+                        };
+
+                        if (img.complete) {
+                            const decodePromise = img.naturalWidth > 0 && img.decode
+                                ? img.decode().catch(() => {})
+                                : Promise.resolve();
+                            decodePromise.finally(done);
+                            return;
+                        }
+
+                        img.addEventListener('load', done, { once: true });
+                        img.addEventListener('error', done, { once: true });
+                    });
+                }));
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            },
+            rasterizeImagesForExport(root) {
+                const restores = [];
+                const ratio = 3;
+                const resolvePosition = (token, freeSpace, fallback) => {
+                    if (!token) return freeSpace * fallback;
+                    if (token === 'left' || token === 'top') return 0;
+                    if (token === 'center') return freeSpace * 0.5;
+                    if (token === 'right' || token === 'bottom') return freeSpace;
+                    if (token.endsWith('%')) return freeSpace * ((parseFloat(token) || 0) / 100);
+                    if (token.endsWith('px')) return parseFloat(token) || 0;
+                    return freeSpace * fallback;
+                };
+
+                const seenTargets = new Set();
+                Array.from(root.querySelectorAll('.wechat-avatar, .image-bubble img')).forEach(img => {
+                    const imageBubble = img.closest('.image-bubble');
+                    const target = imageBubble && !img.classList.contains('wechat-avatar') ? imageBubble : img;
+                    if (seenTargets.has(target)) return;
+                    seenTargets.add(target);
+
+                    const rect = target.getBoundingClientRect();
+                    const targetStyle = window.getComputedStyle(target);
+                    const cssWidth = Math.round(target.offsetWidth || parseFloat(targetStyle.width) || rect.width);
+                    const cssHeight = Math.round(target.offsetHeight || parseFloat(targetStyle.height) || rect.height);
+                    const naturalWidth = img.naturalWidth;
+                    const naturalHeight = img.naturalHeight;
+
+                    if (!cssWidth || !cssHeight || !naturalWidth || !naturalHeight) return;
+
+                    const imageStyle = window.getComputedStyle(img);
+                    const objectFit = imageStyle.objectFit || 'fill';
+                    const canvas = document.createElement('canvas');
+                    canvas.width = Math.max(1, Math.round(cssWidth * ratio));
+                    canvas.height = Math.max(1, Math.round(cssHeight * ratio));
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) return;
+
+                    let drawX = 0;
+                    let drawY = 0;
+                    let drawWidth = canvas.width;
+                    let drawHeight = canvas.height;
+
+                    if (objectFit === 'cover' || objectFit === 'contain') {
+                        const scale = objectFit === 'cover'
+                            ? Math.max(canvas.width / naturalWidth, canvas.height / naturalHeight)
+                            : Math.min(canvas.width / naturalWidth, canvas.height / naturalHeight);
+                        drawWidth = naturalWidth * scale;
+                        drawHeight = naturalHeight * scale;
+                        const position = (imageStyle.objectPosition || '50% 50%').trim().split(/\s+/);
+                        drawX = resolvePosition(position[0], canvas.width - drawWidth, 0.5);
+                        drawY = resolvePosition(position[1], canvas.height - drawHeight, 0.5);
+                    }
+
+                    try {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+                    } catch (error) {
+                        console.warn('Image canvas export fallback skipped', error);
+                        return;
+                    }
+
+                    const replacement = document.createElement('div');
+                    replacement.className = target.className;
+                    replacement.style.cssText = target.style.cssText;
+                    replacement.style.width = `${cssWidth}px`;
+                    replacement.style.height = `${cssHeight}px`;
+                    replacement.style.minWidth = `${cssWidth}px`;
+                    replacement.style.minHeight = `${cssHeight}px`;
+                    replacement.style.display = targetStyle.display === 'none' ? 'none' : (targetStyle.display || 'block');
+                    replacement.style.boxSizing = targetStyle.boxSizing;
+                    replacement.style.borderRadius = targetStyle.borderRadius;
+                    replacement.style.flexShrink = targetStyle.flexShrink;
+                    replacement.style.overflow = targetStyle.overflow;
+                    replacement.style.backgroundImage = `url("${canvas.toDataURL('image/png')}")`;
+                    replacement.style.backgroundSize = '100% 100%';
+                    replacement.style.backgroundPosition = 'center center';
+                    replacement.style.backgroundRepeat = 'no-repeat';
+                    replacement.setAttribute('aria-hidden', 'true');
+
+                    target.replaceWith(replacement);
+                    restores.push({ target, replacement });
+                });
+
+                return () => {
+                    restores.forEach(item => {
+                        if (item.replacement.parentNode) {
+                            item.replacement.replaceWith(item.target);
+                        }
+                    });
+                };
+            },
             async generateImage(event) {
                 const node = document.getElementById('wechat-preview');
                 const btn = event?.currentTarget;
@@ -1754,10 +1891,18 @@
                     return;
                 }
 
+                let restoreImages = null;
                 try {
+                    await this.waitForPreviewImages(node);
+                    restoreImages = this.rasterizeImagesForExport(node);
+                    await this.waitForPreviewImages(node);
+
                     const dataUrl = await imageApi.toPng(node, {
                         pixelRatio: 3,
                         backgroundColor: bgColor,
+                        cacheBust: false,
+                        width: node.offsetWidth,
+                        height: node.offsetHeight,
                         style: { transform: 'scale(1)', transformOrigin: 'top left' }
                     });
                     await this.shareOrDownloadImage(dataUrl, `微信截图_${new Date().getTime()}.png`);
@@ -1765,6 +1910,7 @@
                     console.error('导出失败!', error);
                     alert('截图生成失败，请重试');
                 } finally {
+                    if (restoreImages) restoreImages();
                     btn.innerHTML = originalText;
                 }
             }
