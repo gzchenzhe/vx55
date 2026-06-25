@@ -1,10 +1,13 @@
-const CACHE_NAME = 'wechat-screenshot-pwa-v3';
+const CACHE_NAME = 'wechat-screenshot-pwa-v9';
 
 const CORE_ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
   './assets/icon.svg',
+  './assets/apple-touch-icon.png',
+  './assets/icon-192.png',
+  './assets/icon-512.png',
   './vendor/tailwind-local.css',
   './vendor/vue.global.prod.js',
   './vendor/html-to-image.min.js',

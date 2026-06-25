@@ -10,6 +10,7 @@
     <title>微信截图 PWA</title>
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
     <link rel="stylesheet" href="vendor/tailwind-local.css">
     <script src="vendor/vue.global.prod.js"></script>
     <script src="vendor/html-to-image.min.js"></script>
@@ -633,6 +634,7 @@
         html,
         body {
             height: 100%;
+            overflow-x: hidden;
             overscroll-behavior: none;
         }
 
@@ -645,6 +647,7 @@
             flex-direction: column;
             align-items: center;
             background: #f5f5f7;
+            overflow-x: hidden;
         }
 
         .pwa-pages {
@@ -652,6 +655,7 @@
             flex: 1;
             position: relative;
             min-height: 0;
+            overflow: hidden;
         }
 
         .pwa-page {
@@ -661,24 +665,65 @@
             justify-content: center;
             opacity: 0;
             pointer-events: none;
-            transform: translateX(18px);
-            transition: opacity 180ms ease, transform 180ms ease;
+            transform: none;
+            transition: opacity 180ms ease;
         }
 
         .pwa-page.is-active {
             opacity: 1;
             pointer-events: auto;
-            transform: translateX(0);
+            transform: none;
             z-index: 2;
         }
 
         .pwa-editor-page:not(.is-active) {
-            transform: translateX(-18px);
+            transform: none;
         }
 
         .editor-card {
             height: 100% !important;
             max-height: 100%;
+        }
+
+        .pwa-topbar {
+            gap: 10px;
+            min-height: 64px;
+            padding: 14px 16px !important;
+        }
+
+        .pwa-topbar-title {
+            min-width: 0;
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 17px !important;
+            line-height: 22px !important;
+        }
+
+        .pwa-action-row {
+            flex-shrink: 0;
+            gap: 8px !important;
+        }
+
+        .pwa-action-btn {
+            min-height: 34px;
+            padding: 0 10px !important;
+            border-radius: 10px !important;
+            font-size: 13px !important;
+            line-height: 1;
+            white-space: nowrap;
+        }
+
+        .pwa-action-btn svg {
+            width: 15px !important;
+            height: 15px !important;
+            flex-shrink: 0;
+        }
+
+        .pwa-action-btn.is-primary {
+            padding-left: 12px !important;
+            padding-right: 12px !important;
         }
 
         .pwa-preview-page {
@@ -700,10 +745,17 @@
             flex: 1;
             min-height: 0;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
-            overflow: auto;
-            padding: 14px 0 4px;
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding: 22px 0 32px;
+            touch-action: pan-y;
+        }
+
+        .pwa-preview-stage .phone-shell {
+            flex: 0 0 auto;
         }
 
         .pwa-bottom-nav {
@@ -714,7 +766,7 @@
             width: min(calc(100% - 28px), 480px);
             height: 58px;
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 8px;
             padding: 8px;
             border: 1px solid rgba(17, 24, 39, 0.08);
@@ -729,10 +781,10 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 7px;
+            gap: 6px;
             border-radius: 12px !important;
             color: #6b7280;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             transition: background 160ms ease, color 160ms ease;
         }
@@ -765,9 +817,36 @@
                 width: 100%;
             }
 
+            .pwa-topbar {
+                min-height: 58px;
+                padding: 11px 14px !important;
+                gap: 8px;
+            }
+
+            .pwa-topbar-title {
+                font-size: 16px !important;
+                line-height: 20px !important;
+            }
+
+            .pwa-action-row {
+                gap: 6px !important;
+            }
+
+            .pwa-action-btn {
+                min-height: 32px;
+                padding-left: 8px !important;
+                padding-right: 8px !important;
+                font-size: 12px !important;
+            }
+
+            .pwa-action-btn.is-primary {
+                padding-left: 10px !important;
+                padding-right: 10px !important;
+            }
+
             .phone-shell {
                 transform: scale(0.88);
-                transform-origin: center center;
+                transform-origin: center top;
             }
         }
 
@@ -781,6 +860,24 @@
                 transform-origin: center top;
             }
         }
+
+        @media (max-width: 430px) and (max-height: 860px) {
+            .pwa-preview-stage {
+                padding-top: 18px;
+            }
+
+            .phone-shell {
+                transform: scale(0.78);
+                transform-origin: center top;
+            }
+        }
+
+        @media (max-width: 430px) and (max-height: 780px) {
+            .phone-shell {
+                transform: scale(0.72);
+                transform-origin: center top;
+            }
+        }
     </style>
 </head>
 <body>
@@ -788,24 +885,23 @@
 <div id="app" class="pwa-app">
     <main class="pwa-pages">
     
-    <section class="pwa-page pwa-editor-page" :class="{ 'is-active': activePage === 'editor' }" aria-label="微信截图编辑器">
+    <section class="pwa-page pwa-home-page" :class="{ 'is-active': activePage === 'home' }" aria-label="首页">
     <div class="editor-card w-full md:w-[480px] bg-white rounded-xl shadow-lg flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
-        <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white z-20 shrink-0">
-            <h1 class="text-xl font-bold text-gray-800">微信截图编辑器</h1>
-            <div class="flex gap-2">
-                <button @click="resetState" class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-lg font-medium transition flex items-center gap-1 shadow-sm text-sm">
+        <div class="pwa-topbar px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white z-20 shrink-0">
+            <h1 class="pwa-topbar-title text-xl font-bold text-gray-800">首页</h1>
+            <div class="pwa-action-row flex gap-2">
+                <button @click="resetState" class="pwa-action-btn bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-lg font-medium transition flex items-center gap-1 shadow-sm text-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                     重置
                 </button>
-                <button @click="generateImage($event)" class="bg-[#07c160] hover:bg-[#06ad56] text-white px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 shadow-sm text-sm">
+                <button @click="generateImage($event)" class="pwa-action-btn is-primary bg-[#07c160] hover:bg-[#06ad56] text-white px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 shadow-sm text-sm">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     导出截图
                 </button>
             </div>
         </div>
 
-        <div id="edit-panel-scroll" class="flex-1 overflow-y-auto custom-scrollbar px-6 py-5 space-y-6 relative">
-            
+        <div class="flex-1 overflow-y-auto custom-scrollbar px-6 py-5 space-y-6 relative">
             <div class="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <div class="flex justify-between items-center border-b border-gray-200 pb-3 mb-1">
                     <h2 class="font-semibold text-gray-700">全局外观</h2>
@@ -882,7 +978,27 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+    </section>
 
+    <section class="pwa-page pwa-editor-page" :class="{ 'is-active': activePage === 'editor' }" aria-label="微信截图编辑器">
+    <div class="editor-card w-full md:w-[480px] bg-white rounded-xl shadow-lg flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
+        <div class="pwa-topbar px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white z-20 shrink-0">
+            <h1 class="pwa-topbar-title text-xl font-bold text-gray-800">微信截图编辑器</h1>
+            <div class="pwa-action-row flex gap-2">
+                <button @click="resetState" class="pwa-action-btn bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-lg font-medium transition flex items-center gap-1 shadow-sm text-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    重置
+                </button>
+                <button @click="generateImage($event)" class="pwa-action-btn is-primary bg-[#07c160] hover:bg-[#06ad56] text-white px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 shadow-sm text-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    导出截图
+                </button>
+            </div>
+        </div>
+
+        <div id="edit-panel-scroll" class="flex-1 overflow-y-auto custom-scrollbar px-6 py-5 space-y-6 relative">
             <div class="space-y-4 pb-4">
                 <div class="flex justify-between items-center mb-2">
                     <h2 class="font-semibold text-gray-700 flex items-center gap-2">
@@ -1000,14 +1116,14 @@
 
     <section class="pwa-page pwa-preview-page" :class="{ 'is-active': activePage === 'preview' }" aria-label="预览图分享">
     <div class="preview-card">
-        <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white z-20 shrink-0 rounded-xl shadow-lg">
-            <h1 class="text-xl font-bold text-gray-800">预览图分享</h1>
-            <div class="flex gap-2">
-                <button @click="resetState" class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-lg font-medium transition flex items-center gap-1 shadow-sm text-sm">
+        <div class="pwa-topbar px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white z-20 shrink-0 rounded-xl">
+            <h1 class="pwa-topbar-title text-xl font-bold text-gray-800">预览图分享</h1>
+            <div class="pwa-action-row flex gap-2">
+                <button @click="resetState" class="pwa-action-btn bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-lg font-medium transition flex items-center gap-1 shadow-sm text-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                     重置
                 </button>
-                <button @click="generateImage($event)" class="bg-[#07c160] hover:bg-[#06ad56] text-white px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 shadow-sm text-sm">
+                <button @click="generateImage($event)" class="pwa-action-btn is-primary bg-[#07c160] hover:bg-[#06ad56] text-white px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 shadow-sm text-sm">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     导出截图
                 </button>
@@ -1193,6 +1309,10 @@
     </main>
 
     <nav class="pwa-bottom-nav" aria-label="底部导航">
+        <button type="button" :class="{ 'is-active': activePage === 'home' }" :aria-current="activePage === 'home' ? 'page' : null" @click="activePage = 'home'">
+            <span class="pwa-nav-dot" aria-hidden="true"></span>
+            <span>首页</span>
+        </button>
         <button type="button" :class="{ 'is-active': activePage === 'editor' }" :aria-current="activePage === 'editor' ? 'page' : null" @click="activePage = 'editor'">
             <span class="pwa-nav-dot" aria-hidden="true"></span>
             <span>编辑器</span>
@@ -1224,11 +1344,7 @@
         myAvatar: defaultMyAvatar,
         otherAvatar: defaultOtherAvatar,
         messages: [
-            { id: 1, type: 'time', content: '星期三 11:17' },
-            { id: 2, type: 'call', isMe: true, content: '通话时长 00:43' },
-            { id: 3, type: 'time', content: '星期三 16:11' },
-            { id: 4, type: 'text', isMe: false, content: '苹果字体分版本的' },
-            { id: 5, type: 'text', isMe: false, content: '要指定字体，粗一点细一点没用的' }
+            { id: 1, type: 'text', isMe: false, content: '欢迎使用' }
         ]
     };
 
@@ -1239,7 +1355,7 @@
             return {
                 // 深拷贝一份默认数据作为初始状态
                 ...JSON.parse(JSON.stringify(defaultState)),
-                activePage: 'editor',
+                activePage: 'home',
                 dragIndex: null,
                 dragOverIndex: null
             }
@@ -1435,7 +1551,34 @@
                     if (editPanel) editPanel.scrollTop = editPanel.scrollHeight;
                 }, 50);
             },
-            generateImage(event) {
+            downloadImage(dataUrl, fileName) {
+                const a = document.createElement('a');
+                a.href = dataUrl;
+                a.download = fileName;
+                a.click();
+            },
+            async shareOrDownloadImage(dataUrl, fileName) {
+                const response = await fetch(dataUrl);
+                const blob = await response.blob();
+                const file = new File([blob], fileName, { type: 'image/png' });
+
+                if (navigator.canShare?.({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            files: [file],
+                            title: fileName,
+                            text: '微信截图'
+                        });
+                        return;
+                    } catch (error) {
+                        if (error?.name === 'AbortError') return;
+                        console.warn('系统分享失败，改为下载图片。', error);
+                    }
+                }
+
+                this.downloadImage(dataUrl, fileName);
+            },
+            async generateImage(event) {
                 const node = document.getElementById('wechat-preview');
                 const btn = event?.currentTarget;
                 if (!node || !btn) return;
@@ -1451,21 +1594,19 @@
                     return;
                 }
 
-                imageApi.toPng(node, {
-                    pixelRatio: 3, 
-                    backgroundColor: bgColor,
-                    style: { transform: 'scale(1)', transformOrigin: 'top left' }
-                }).then(function (dataUrl) {
-                    const a = document.createElement('a');
-                    a.href = dataUrl;
-                    a.download = `微信截图_${new Date().getTime()}.png`;
-                    a.click();
-                }).catch(function (error) {
+                try {
+                    const dataUrl = await imageApi.toPng(node, {
+                        pixelRatio: 3,
+                        backgroundColor: bgColor,
+                        style: { transform: 'scale(1)', transformOrigin: 'top left' }
+                    });
+                    await this.shareOrDownloadImage(dataUrl, `微信截图_${new Date().getTime()}.png`);
+                } catch (error) {
                     console.error('导出失败!', error);
                     alert('截图生成失败，请重试');
-                }).finally(function () {
+                } finally {
                     btn.innerHTML = originalText;
-                });
+                }
             }
         }
     }).mount('#app');
