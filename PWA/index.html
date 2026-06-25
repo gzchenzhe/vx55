@@ -849,6 +849,11 @@
             overflow: hidden;
         }
 
+        .pwa-home-page .pwa-action-row,
+        .pwa-editor-page .pwa-action-row {
+            display: none !important;
+        }
+
         .preview-card {
             width: 100%;
             max-width: 480px;
@@ -1512,11 +1517,18 @@
             </div>
         </div>
     </div>
-    <div v-if="generatedImageUrl || generatedImageStatus" class="generated-export-panel">
+    <div v-if="generatedImagePanelVisible && (generatedImageUrl || generatedImageStatus)" class="generated-export-panel">
         <div class="flex items-start gap-3">
             <img v-if="generatedImageUrl" :src="generatedImageUrl" alt="已生成截图预览">
             <div class="flex-1 min-w-0">
-                <div class="text-sm font-semibold text-gray-800 mb-1">最终导出图</div>
+                <div class="flex items-center justify-between gap-3 mb-1">
+                    <div class="text-sm font-semibold text-gray-800">最终导出图</div>
+                    <button type="button"
+                            @click="generatedImagePanelVisible = false"
+                            class="pwa-action-btn bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1 rounded-lg font-medium transition text-xs">
+                        关闭
+                    </button>
+                </div>
                 <div class="generated-export-status"
                      :class="{ 'is-ready': generatedImageUrl && !generatedImageDirty, 'is-dirty': generatedImageDirty }">
                     {{ generatedImageStatus || (generatedImageUrl ? '已生成，可导出' : '请先生成图片') }}
@@ -1555,6 +1567,7 @@
     const defaultMyAvatar = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%232c3e50"/><circle cx="50" cy="40" r="16" fill="%23fce2c4"/><path d="M 25 100 L 35 65 Q 50 55 65 65 L 75 100" fill="%23fce2c4"/></svg>';
     const defaultOtherAvatar = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23c0392b"/><circle cx="50" cy="50" r="30" fill="%23f1c40f"/><path d="M 35 35 L 45 45 L 35 55 M 65 35 L 55 45 L 65 55" stroke="%23c0392b" stroke-width="4" fill="none"/></svg>';
     const defaultImage = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 250"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="%23d8e7d2"/><stop offset="1" stop-color="%23f4d2c2"/></linearGradient></defs><rect width="200" height="250" fill="url(%23g)"/><circle cx="100" cy="88" r="34" fill="%23ffffff" opacity=".72"/><path d="M40 214c9-43 31-67 60-67s51 24 60 67" fill="%23ffffff" opacity=".72"/></svg>';
+    const exportTransparentPixel = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
 
     // 定义一套初始默认数据，方便重置和初始化
     const defaultState = {
@@ -1586,6 +1599,7 @@
                 generatedImageUrl: '',
                 generatedImageDirty: false,
                 generatedImageStatus: '',
+                generatedImagePanelVisible: false,
                 dragIndex: null,
                 dragOverIndex: null
             }
@@ -1616,6 +1630,7 @@
             markGeneratedImageDirty() {
                 if (!this.generatedImageUrl) return;
                 this.generatedImageDirty = true;
+                this.generatedImagePanelVisible = true;
                 this.generatedImageStatus = '内容已变化，请重新生成图片';
             },
             // 保存状态到 localStorage
@@ -1664,6 +1679,7 @@
                     this.generatedImageUrl = '';
                     this.generatedImageDirty = false;
                     this.generatedImageStatus = '';
+                    this.generatedImagePanelVisible = false;
                     localStorage.removeItem('wechat_editor_state_v18');
                 }
             },
@@ -1940,6 +1956,279 @@
                     });
                 };
             },
+            nextFrame() {
+                return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            },
+            waitForImageReady(img) {
+                return new Promise(resolve => {
+                    let settled = false;
+                    const finish = () => {
+                        if (settled) return;
+                        settled = true;
+                        clearTimeout(timer);
+                        resolve();
+                    };
+                    const timer = setTimeout(finish, 3000);
+
+                    if (img.complete && img.naturalWidth > 0) {
+                        if (img.decode) img.decode().then(finish).catch(finish);
+                        else finish();
+                        return;
+                    }
+
+                    img.addEventListener('load', finish, { once: true });
+                    img.addEventListener('error', finish, { once: true });
+                });
+            },
+            async waitForExportReady(node) {
+                const images = Array.from(node.querySelectorAll('img'));
+                await Promise.all(images.map(img => this.waitForImageReady(img)));
+                if (document.fonts?.ready) {
+                    await Promise.race([
+                        document.fonts.ready.catch(() => {}),
+                        new Promise(resolve => setTimeout(resolve, 1500))
+                    ]);
+                }
+                await this.nextFrame();
+            },
+            getImageSource(img) {
+                const source = img.currentSrc || img.getAttribute('src') || img.src || '';
+                if (!source || source.startsWith('data:') || source.startsWith('blob:')) return source;
+                try {
+                    return new URL(source, document.baseURI).href;
+                } catch (e) {
+                    return source;
+                }
+            },
+            intersectRects(a, b) {
+                const left = Math.max(a.left, b.left);
+                const top = Math.max(a.top, b.top);
+                const right = Math.min(a.right, b.right);
+                const bottom = Math.min(a.bottom, b.bottom);
+                if (right <= left || bottom <= top) return null;
+                return { left, top, right, bottom, width: right - left, height: bottom - top };
+            },
+            getVisibleImageRect(img, root, imageRect, rootRect) {
+                let clip = this.intersectRects(imageRect, rootRect);
+                if (!clip) return null;
+
+                for (let el = img.parentElement; el && el !== root.parentElement; el = el.parentElement) {
+                    const style = window.getComputedStyle(el);
+                    if (/(auto|scroll|hidden|clip)/.test(`${style.overflow}${style.overflowX}${style.overflowY}`)) {
+                        clip = this.intersectRects(clip, el.getBoundingClientRect());
+                        if (!clip) return null;
+                    }
+                    if (el === root) break;
+                }
+
+                return {
+                    x: clip.left - rootRect.left,
+                    y: clip.top - rootRect.top,
+                    width: clip.width,
+                    height: clip.height
+                };
+            },
+            parseRadiusValue(value, width, height) {
+                const token = String(value || '0').trim().split(/\s+/)[0];
+                if (!token || token === '0') return 0;
+                if (token.endsWith('%')) return Math.min(width, height) * parseFloat(token) / 100;
+                return parseFloat(token) || 0;
+            },
+            readBorderRadius(style, width, height) {
+                return {
+                    tl: this.parseRadiusValue(style.borderTopLeftRadius, width, height),
+                    tr: this.parseRadiusValue(style.borderTopRightRadius, width, height),
+                    br: this.parseRadiusValue(style.borderBottomRightRadius, width, height),
+                    bl: this.parseRadiusValue(style.borderBottomLeftRadius, width, height)
+                };
+            },
+            getImageRadius(img, rect, style) {
+                let radius = this.readBorderRadius(style, rect.width, rect.height);
+                if (radius.tl || radius.tr || radius.br || radius.bl) return radius;
+
+                const parent = img.parentElement;
+                if (!parent) return radius;
+
+                const parentStyle = window.getComputedStyle(parent);
+                if (!/(hidden|clip)/.test(`${parentStyle.overflow}${parentStyle.overflowX}${parentStyle.overflowY}`)) {
+                    return radius;
+                }
+
+                const parentRect = parent.getBoundingClientRect();
+                return this.readBorderRadius(parentStyle, parentRect.width, parentRect.height);
+            },
+            collectImageOverlays(node) {
+                const rootRect = node.getBoundingClientRect();
+                return Array.from(node.querySelectorAll('img')).map(img => {
+                    const rect = img.getBoundingClientRect();
+                    if (!rect.width || !rect.height) return null;
+
+                    const visibleRect = this.getVisibleImageRect(img, node, rect, rootRect);
+                    if (!visibleRect) return null;
+
+                    const style = window.getComputedStyle(img);
+                    const src = this.getImageSource(img);
+                    if (!src) return null;
+
+                    return {
+                        src,
+                        x: rect.left - rootRect.left,
+                        y: rect.top - rootRect.top,
+                        width: rect.width,
+                        height: rect.height,
+                        visibleRect,
+                        naturalWidth: img.naturalWidth || rect.width,
+                        naturalHeight: img.naturalHeight || rect.height,
+                        objectFit: style.objectFit || 'fill',
+                        objectPosition: style.objectPosition || '50% 50%',
+                        opacity: parseFloat(style.opacity || '1'),
+                        filter: style.filter && style.filter !== 'none' ? style.filter : 'none',
+                        radius: this.getImageRadius(img, rect, style)
+                    };
+                }).filter(Boolean);
+            },
+            mutePreviewImages(node) {
+                const images = Array.from(node.querySelectorAll('img'));
+                const states = images.map(img => ({
+                    img,
+                    exportMuted: img.getAttribute('data-export-muted'),
+                    visibility: img.style.visibility
+                }));
+
+                images.forEach(img => {
+                    img.dataset.exportMuted = '1';
+                    img.style.visibility = 'hidden';
+                });
+
+                return () => {
+                    states.forEach(({ img, exportMuted, visibility }) => {
+                        if (exportMuted === null) img.removeAttribute('data-export-muted');
+                        else img.setAttribute('data-export-muted', exportMuted);
+                        img.style.visibility = visibility;
+                    });
+                };
+            },
+            loadExportImage(src) {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    if (/^https?:/i.test(src)) {
+                        try {
+                            if (new URL(src).origin !== window.location.origin) img.crossOrigin = 'anonymous';
+                        } catch (e) {}
+                    }
+                    img.onload = () => resolve(img);
+                    img.onerror = reject;
+                    img.src = src;
+                });
+            },
+            addRoundedRectPath(ctx, x, y, width, height, radius) {
+                const tl = Math.min(radius.tl || 0, width / 2, height / 2);
+                const tr = Math.min(radius.tr || 0, width / 2, height / 2);
+                const br = Math.min(radius.br || 0, width / 2, height / 2);
+                const bl = Math.min(radius.bl || 0, width / 2, height / 2);
+
+                ctx.beginPath();
+                ctx.moveTo(x + tl, y);
+                ctx.lineTo(x + width - tr, y);
+                ctx.quadraticCurveTo(x + width, y, x + width, y + tr);
+                ctx.lineTo(x + width, y + height - br);
+                ctx.quadraticCurveTo(x + width, y + height, x + width - br, y + height);
+                ctx.lineTo(x + bl, y + height);
+                ctx.quadraticCurveTo(x, y + height, x, y + height - bl);
+                ctx.lineTo(x, y + tl);
+                ctx.quadraticCurveTo(x, y, x + tl, y);
+                ctx.closePath();
+            },
+            getObjectPosition(position) {
+                const tokens = String(position || '').toLowerCase().split(/\s+/);
+                let x = 0.5;
+                let y = 0.5;
+                let xSet = false;
+                let ySet = false;
+
+                tokens.forEach(token => {
+                    if (token === 'left') { x = 0; xSet = true; }
+                    else if (token === 'right') { x = 1; xSet = true; }
+                    else if (token === 'top') { y = 0; ySet = true; }
+                    else if (token === 'bottom') { y = 1; ySet = true; }
+                    else if (token === 'center') {}
+                    else if (token.endsWith('%')) {
+                        const value = parseFloat(token) / 100;
+                        if (!xSet) { x = value; xSet = true; }
+                        else if (!ySet) { y = value; ySet = true; }
+                    }
+                });
+
+                return { x, y };
+            },
+            drawImageByObjectFit(ctx, image, overlay, x, y, width, height) {
+                const fit = overlay.objectFit || 'fill';
+                const imageWidth = overlay.naturalWidth || image.naturalWidth || width;
+                const imageHeight = overlay.naturalHeight || image.naturalHeight || height;
+                const position = this.getObjectPosition(overlay.objectPosition);
+
+                if (fit === 'contain' || fit === 'cover' || fit === 'scale-down') {
+                    const containScale = Math.min(width / imageWidth, height / imageHeight);
+                    const coverScale = Math.max(width / imageWidth, height / imageHeight);
+                    let scale = fit === 'cover' ? coverScale : containScale;
+                    if (fit === 'scale-down') scale = Math.min(1, containScale);
+
+                    const drawWidth = imageWidth * scale;
+                    const drawHeight = imageHeight * scale;
+                    const drawX = x + (width - drawWidth) * position.x;
+                    const drawY = y + (height - drawHeight) * position.y;
+                    ctx.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+                    return;
+                }
+
+                ctx.drawImage(image, x, y, width, height);
+            },
+            async paintImageOverlays(baseDataUrl, node, overlays) {
+                if (!overlays.length) return baseDataUrl;
+
+                const baseImage = await this.loadExportImage(baseDataUrl);
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const nodeRect = node.getBoundingClientRect();
+                const scaleX = baseImage.naturalWidth / nodeRect.width;
+                const scaleY = baseImage.naturalHeight / nodeRect.height;
+
+                canvas.width = baseImage.naturalWidth;
+                canvas.height = baseImage.naturalHeight;
+                ctx.drawImage(baseImage, 0, 0);
+
+                for (const overlay of overlays) {
+                    try {
+                        const image = await this.loadExportImage(overlay.src);
+                        const x = overlay.x * scaleX;
+                        const y = overlay.y * scaleY;
+                        const width = overlay.width * scaleX;
+                        const height = overlay.height * scaleY;
+                        const clip = overlay.visibleRect;
+                        const radius = {
+                            tl: (overlay.radius.tl || 0) * Math.min(scaleX, scaleY),
+                            tr: (overlay.radius.tr || 0) * Math.min(scaleX, scaleY),
+                            br: (overlay.radius.br || 0) * Math.min(scaleX, scaleY),
+                            bl: (overlay.radius.bl || 0) * Math.min(scaleX, scaleY)
+                        };
+
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.rect(clip.x * scaleX, clip.y * scaleY, clip.width * scaleX, clip.height * scaleY);
+                        ctx.clip();
+                        this.addRoundedRectPath(ctx, x, y, width, height, radius);
+                        ctx.clip();
+                        ctx.globalAlpha = Number.isFinite(overlay.opacity) ? overlay.opacity : 1;
+                        try { ctx.filter = overlay.filter || 'none'; } catch (e) { ctx.filter = 'none'; }
+                        this.drawImageByObjectFit(ctx, image, overlay, x, y, width, height);
+                        ctx.restore();
+                    } catch (e) {
+                        console.warn('Image overlay paint failed', overlay.src, e);
+                    }
+                }
+
+                return canvas.toDataURL('image/png');
+            },
             async createExportImageDataUrl() {
                 const node = document.getElementById('wechat-preview');
                 if (!node) throw new Error('Preview node not found');
@@ -1949,20 +2238,21 @@
 
                 let restoreImages = null;
                 try {
-                    await this.waitForPreviewImages(node);
-                    restoreImages = this.rasterizeImagesForExport(node);
-                    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                    await this.waitForExportReady(node);
+                    const imageOverlays = this.collectImageOverlays(node);
+                    restoreImages = this.mutePreviewImages(node);
+                    await this.nextFrame();
 
                     const dataUrl = await imageApi.toPng(node, {
                         pixelRatio: 3,
                         backgroundColor: this.isDarkMode ? '#111111' : '#ededed',
-                        cacheBust: false,
-                        width: node.offsetWidth,
-                        height: node.offsetHeight,
+                        cacheBust: true,
+                        imagePlaceholder: exportTransparentPixel,
                         style: { transform: 'scale(1)', transformOrigin: 'top left' }
                     });
-                    await this.ensureGeneratedImageDecoded(dataUrl);
-                    return dataUrl;
+                    const finalDataUrl = await this.paintImageOverlays(dataUrl, node, imageOverlays);
+                    await this.ensureGeneratedImageDecoded(finalDataUrl);
+                    return finalDataUrl;
                 } finally {
                     if (restoreImages) restoreImages();
                 }
@@ -1987,6 +2277,7 @@
                 const originalText = btn?.innerHTML;
                 if (btn) btn.innerHTML = '正在生成...';
                 this.activePage = 'preview';
+                this.generatedImagePanelVisible = true;
                 this.generatedImageStatus = '正在生成最终图片...';
 
                 try {
@@ -2021,6 +2312,7 @@
             async exportGeneratedImage(event) {
                 if (!this.generatedImageUrl || this.generatedImageDirty) {
                     this.activePage = 'preview';
+                    this.generatedImagePanelVisible = true;
                     const message = this.generatedImageDirty
                         ? '内容已经变化，请先重新生成图片，再导出。'
                         : '请先点击“生成图片”，确认最终图完整后再导出。';
@@ -2034,7 +2326,7 @@
                 if (btn) btn.innerHTML = '正在导出...';
 
                 try {
-                    await this.shareOrDownloadImage(this.generatedImageUrl, `微信截图_${new Date().getTime()}.png`);
+                    this.downloadImage(this.generatedImageUrl, `微信截图_${new Date().getTime()}.png`);
                 } catch (error) {
                     console.error('导出失败!', error);
                     alert('导出失败，请重试');
